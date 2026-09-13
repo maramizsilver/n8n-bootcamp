@@ -1,0 +1,586 @@
+{
+  "name": "healthy-life n8n project",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        -576
+      ],
+      "id": "476a4e70-70c3-4c28-a978-87ea38d14a90",
+      "name": "When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1TYewxuuDeCMsltTCn3TAH0VZJfOC_RMS",
+          "mode": "list",
+          "cachedResultName": "Food Fact Sheet - Healthy Eating.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/1TYewxuuDeCMsltTCn3TAH0VZJfOC_RMS/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        160,
+        -560
+      ],
+      "id": "d188e544-dd0e-47e1-9206-67da85b24a9b",
+      "name": "Download file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "oVWqquC7uL1hcwDh",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents",
+          "cachedResultUrl": ""
+        },
+        "embeddingBatchSize": 400,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1088,
+        -480
+      ],
+      "id": "11073cc6-c6ce-401b-a178-8db542646c75",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "VT68OYD53bjcR8X7",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-2-preview"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        992,
+        -192
+      ],
+      "id": "6223c374-6f5b-481d-9c89-0902793772d8",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "EKmPoxgMNK16yIBA",
+          "name": "Google Gemini(PaLM) Api account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1216,
+        -240
+      ],
+      "id": "629ad5d6-db8e-4be5-82fd-ae730cb9b5ba",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        -560
+      ],
+      "id": "1aaca18b-9d94-45f3-9006-42dd36b9d279",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -224,
+        96
+      ],
+      "id": "f5ee6f48-7b54-48e1-a0f6-3f457d9d20b1",
+      "name": "When chat message received",
+      "webhookId": "2d0c27a3-5dcb-4517-b421-657deb6d5c3d"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Tu es un assistant IA spécialisé en nutrition, science de l'alimentation, alimentation saine et gestion de recettes. Ton objectif : comprendre la demande de l'utilisateur et répondre de façon claire, fiable et concrète.\n\nOutils disponibles\n\nSupabase Vector Store — documents personnels, recettes ou données nutritionnelles de l'utilisateur.\nFirecrawl Search — recherche web pour des infos externes, récentes ou à valider.\nFirecrawl Scrape — extraction approfondie d'une page web précise trouvée via la recherche.\nGmail — uniquement si l'utilisateur demande explicitement d'envoyer un email.\n\nUtilise ces outils quand ils apportent une vraie valeur ajoutée à la réponse — pas par réflexe. Si la base de connaissances de l'utilisateur peut contenir une réponse pertinente, vérifie-la en premier. Si l'info doit être à jour ou vient de l'extérieur, cherche sur le web.\n\nComment répondre\n\nRéponds directement à la question, sans tourner autour.\nPrécise la source quand c'est utile (info personnelle vs info trouvée en ligne).\nNe jamais inventer de valeurs nutritionnelles, recettes ou sources — dis-le si tu n'es pas sûr.\nDonne des quantités et repères concrets quand tu les as.\nAdapte la longueur et la structure à la question — pas de format imposé.\nPose une question de clarification si la demande est ambiguë.\nTon : amical, professionnel, utile.\n\nEmail (Gmail)\n\nN'envoie un email que si l'utilisateur le demande explicitement. Dans ce cas : objet clair, message bien structuré, contenu pertinent (recette, résumé, recommandation…), et confirme l'envoi à l'utilisateur une fois fait.\n\nCe que j'ai changé et pourquoi :\n\nRetiré les répétitions (\"do not use tools unnecessarily\" dit deux fois sous des formes différentes) → une seule mention, formulée comme principe de jugement plutôt que d'interdiction.\nSimplifié les règles Gmail (la liste à puces \"email/send/mail\" était redondante avec la phrase du dessus).\nRemplacé le ton \"règlement\" (contrôler chaque cas) par un ton \"guide\" (donner le contexte et faire confiance au jugement du modèle).\nGardé les garde-fous essentiels (pas d'invention de données, pas d'email non demandé) car ce sont de vraies contraintes de fiabilité, pas du contrôle excessif."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        256,
+        96
+      ],
+      "id": "4526a552-b5b5-49e9-afd7-b47382a15aa4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Extract the full, clean content of a specific webpage URL. Use this only when you already have a URL — typically one returned by the firecrawl search tool, or a URL provided directly by the user — and need more detail than the short search snippet provides. Do not use this tool to guess or invent a URL; only scrape URLs you've actually obtained from search results or the user's message.",
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v2/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n    \"url\": \"https://www.betterhealth.vic.gov.au/health/healthyliving/sporting-performance-and-food\",\n    \"onlyMainContent\": true,\n    \"maxAge\": 172800000,\n    \"parsers\": [\n        \"pdf\"\n    ],\n    \"formats\": [\n        \"markdown\"\n    ]\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        816,
+        512
+      ],
+      "id": "7e041f6c-6b66-4c3f-a991-e66edba5ef79",
+      "name": "firexrawl scrape",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "MVf8hkIU4tz7y2UZ",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool FIRST for all user queries. It retrieves relevant information from the user's proprietary documents (nutrition fact sheets, food composition tables, recipes, and dietary guidelines) stored as vector embeddings in Supabase",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1056,
+        240
+      ],
+      "id": "ecbb3bfb-460c-44d6-9b56-4d70786c1293",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "slat1E6FA9DALV4U",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const CHUNK_SIZE = 1000;\nconst CHUNK_OVERLAP = 150;\nconst MIN_CHUNK_LENGTH = 30; // seuil minimum de caractères utiles\n\nfunction splitText(text, chunkSize, overlap) {\n  const cleaned = text.replace(/\\n{3,}/g, '\\n\\n').trim();\n  const chunks = [];\n  let start = 0;\n\n  while (start < cleaned.length) {\n    let end = start + chunkSize;\n\n    if (end < cleaned.length) {\n      const lastBreak = cleaned.lastIndexOf('\\n', end);\n      const lastDot = cleaned.lastIndexOf('. ', end);\n      const cut = Math.max(lastBreak, lastDot);\n      if (cut > start + chunkSize * 0.5) {\n        end = cut + 1;\n      }\n    }\n\n    const chunk = cleaned.slice(start, end).trim();\n    chunks.push(chunk);\n\n    start = end - overlap;\n    if (start <= 0 || end >= cleaned.length) break;\n  }\n\n  return chunks;\n}\n\n// Vérifie qu'un chunk contient un vrai contenu (pas que ponctuation/espaces)\nfunction isValidChunk(chunk) {\n  const alphanumeric = chunk.replace(/[^a-zA-Z0-9À-ÿ]/g, '');\n  return alphanumeric.length >= MIN_CHUNK_LENGTH;\n}\n\nconst results = [];\n\nfor (const item of items) {\n  const text = item.json.text || '';\n  if (!text.trim()) continue;\n\n  const chunks = splitText(text, CHUNK_SIZE, CHUNK_OVERLAP);\n\n  for (let i = 0; i < chunks.length; i++) {\n    if (isValidChunk(chunks[i])) {\n      results.push({\n        json: {\n          pageContent: chunks[i],\n          metadata: {\n            chunkIndex: i,\n            source: item.json.fileName || 'healthy life.pdf'\n          }\n        }\n      });\n    }\n  }\n}\n\nif (results.length === 0) {\n  throw new Error('Aucun chunk valide généré — vérifie le texte extrait du PDF');\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -576
+      ],
+      "id": "e661e26c-b4b3-425c-824e-e7770c29a405",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "chunkSize": 5000,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        -64
+      ],
+      "id": "d724c66a-128f-412f-a03f-61e269a52356",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        624,
+        -256
+      ],
+      "id": "b77d6f5a-d2d7-4cb2-a984-ff3e55d38677",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1Ov6Jfewz11YtkJBn0IZaVGxzX6TTgaIj",
+          "mode": "list",
+          "cachedResultName": "Recipe collection.txt",
+          "cachedResultUrl": "https://drive.google.com/file/d/1Ov6Jfewz11YtkJBn0IZaVGxzX6TTgaIj/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        304,
+        -336
+      ],
+      "id": "0a14589e-2e59-47a8-ba8f-0582611a98a7",
+      "name": "recipe txt",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "oVWqquC7uL1hcwDh",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Search the live web for current, general, or up-to-date information that is NOT already covered by the internal Supabase knowledge base or the Open Food Facts lookup. Use this when the user asks about recent news, general nutrition topics, external articles, or anything requiring broader web coverage. Returns a list of relevant web pages with short snippets. Use the Supabase retrieval tool first for questions about the user's own uploaded documents, and only fall back to this tool if that doesn't return relevant results. If you need the full content of one of the returned pages rather than just a snippet, follow up with the firecrawl scrape tool on that specific URL.",
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v2/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n    \"query\": \"healthy life food sport \",\n    \"sources\": [\n        \"web\"\n    ],\n    \"categories\": [],\n    \"limit\": 10,\n    \"scrapeOptions\": {\n        \"onlyMainContent\": true,\n        \"maxAge\": 172800000,\n        \"parsers\": [\n            \"pdf\"\n        ],\n        \"formats\": []\n      }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        576
+      ],
+      "id": "79420494-a78e-476c-8226-c46f2ee24b88",
+      "name": "firewrawl search",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "MVf8hkIU4tz7y2UZ",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Send a message in Gma   Send an email via Gmail. Use this ONLY when the user explicitly asks you to email, send, or share something (like a recipe, meal plan, or nutrition summary) to a specific email address. Do not use this tool automatically for every response.",
+        "sendTo": "salhimaram359@gmail.com",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.message || $json.body || $input.first().json.message }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        1056,
+        416
+      ],
+      "id": "842ef8b9-850f-4cb2-9aec-bd481d4ff953",
+      "name": "Send a message in Gmail",
+      "webhookId": "f1430145-9193-413c-bbaa-1683f4b6c5aa",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "eNjFesqEVS3NO5M7",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "main workflow :\nUne fois la base de connaissances initialisée, le workflow automatique devient actif. À chaque message envoyé dans le chat, l'AI Agent suit une procédure stricte : \n1. Il interroge d'abord Supabase pour trouver des informations dans vos documents personnels\n2. Il effectue une recherche web via Firecrawl pour des sources complémentaires\n3. Il scrape les pages web pertinentes pour obtenir le contenu complet\n4. Il synthétise toutes les informations en une réponse structurée\n5. (Optionnel) Il envoie un email sur demande de l'utilisateur",
+        "height": 304,
+        "width": 624
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -608,
+        288
+      ],
+      "typeVersion": 1,
+      "id": "04101281-56f9-4b70-b2a6-df4cf5b9f485",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "1er workflow pour charger les données concernant healthy life  extrait des fichiers dans supabase ",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -560,
+        -432
+      ],
+      "typeVersion": 1,
+      "id": "d1ce4687-c24f-486f-91a8-5c6dbec13a0f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "use case objectif :\n Fournir des conseils nutritionnels personnalisés en combinant les documents personnels de l'utilisateur avec des sources web externes vérifiées, le tout accessible via chat et email.",
+        "height": 192,
+        "width": 368
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1664,
+        -368
+      ],
+      "typeVersion": 1,
+      "id": "2e917c4a-a893-4d64-bc50-1757ab0c00b8",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        128,
+        304
+      ],
+      "id": "2c2a4b76-3634-457b-ae9c-3471f5f9b125",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "UufeutVx7FILso9X",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "Download file1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "recipe txt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "main": [
+        []
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "firexrawl scrape": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "recipe txt": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "firewrawl search": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f603d80d-1753-48a4-b91f-2ecd0efa6710",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "20537c7a5c2b810cd7511d76976595015eb07f601453b3a21d35d111a429af8a"
+  },
+  "nodeGroups": [],
+  "id": "2nJzTl7RSMCfTfAi",
+  "tags": []
+}
